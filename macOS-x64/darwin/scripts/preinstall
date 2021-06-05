@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -x
+
+echo "You are in the pre installation phase ..."
+
+XSCRIPT=$0
+XPACKAGE=$1
+XTARGETLOCATION=$2
+XTARGETVOLUME=$3
+
+echo "XSCRIPT: [${XSCRIPT}]"
+echo "XPACKAGE: [${XPACKAGE}]"
+echo "XTARGETLOCATION: [${XTARGETLOCATION}]"
+echo "XTARGETVOLUME: [${XTARGETVOLUME}]"
+

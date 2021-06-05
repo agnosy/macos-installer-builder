@@ -1,20 +1,32 @@
 #!/bin/bash
 
-#Custermize this for your application
-APPLICATION_FILE_PATH=bin/wso2server.sh
+set -x
 
-#Parameters
-PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
+XSCRIPT=$0
+XPACKAGE=$1
+XTARGETLOCATION=$2
+XTARGETVOLUME=$3
+
+echo "XSCRIPT: [${XSCRIPT}]"
+echo "XPACKAGE: [${XPACKAGE}]"
+echo "XTARGETLOCATION: [${XTARGETLOCATION}]"
+echo "XTARGETVOLUME: [${XTARGETVOLUME}]"
+
+# Custermize this for your application
+APPLICATION_FILE_PATH=bin/hello
+
+# Parameters
+PRODUCT_HOME=/tmp/Library/__PRODUCT__/__VERSION__
 
 echo "Post installation process started"
 
-#Change permissions in home directory
+# Change permissions in home directory
 echo "Change permissions in product home"
 cd ${PRODUCT_HOME}
 chmod -R 755 .
-[ -d /usr/local/bin ] || mkdir /usr/local/bin
+[ -d /tmp/usr/local/bin ] || mkdir -p /tmp/usr/local/bin
 
-#Add application shortcut to /usr/local/bin
-rm -f /usr/local/bin/__PRODUCT__-__VERSION__
-ln -s ${PRODUCT_HOME}/${APPLICATION_FILE_PATH} /usr/local/bin/__PRODUCT__-__VERSION__
+# Add application shortcut to /usr/local/bin
+rm -f /tmp/usr/local/bin/__PRODUCT__-__VERSION__
+ln -s ${PRODUCT_HOME}/${APPLICATION_FILE_PATH} /tmp/usr/local/bin/__PRODUCT__-__VERSION__
 echo "Post installation process finished"

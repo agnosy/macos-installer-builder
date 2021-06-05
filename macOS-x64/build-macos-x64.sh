@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -x
 
 #Configuration Variables and Parameters
 
@@ -7,25 +9,25 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 TARGET_DIRECTORY="$SCRIPTPATH/target"
 PRODUCT=${1}
 VERSION=${2}
+PACKAGE_NAME=${PRODUCT}-macos-installer-x64-${VERSION}.pkg
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
 LOG_PREFIX="[$DATE $TIME]"
 
 function printSignature() {
-  cat $SCRIPTPATH/utils/ascii_art.txt
-  echo
+    cat $SCRIPTPATH/utils/ascii_art.txt
+    echo
 }
 
 function printUsage() {
-  echo -e "\033[1mUsage:\033[0m"
-  echo "$0 [APPLICATION_NAME] [APPLICATION_VERSION]"
-  echo
-  echo -e "\033[1mOptions:\033[0m"
-  echo "  -h (--help)"
-  echo
-  echo -e "\033[1mExample::\033[0m"
-  echo "$0 wso2am 2.6.0"
-
+    echo -e "\033[1mUsage:\033[0m"
+    echo "$0 [APPLICATION_NAME] [APPLICATION_VERSION]"
+    echo
+    echo -e "\033[1mOptions:\033[0m"
+    echo "  -h (--help)"
+    echo
+    echo -e "\033[1mExample::\033[0m"
+    echo "$0 wso2am 2.6.0"
 }
 
 #Start the generator
@@ -95,18 +97,24 @@ createInstallationDirectory() {
 copyDarwinDirectory(){
   createInstallationDirectory
   cp -r $SCRIPTPATH/darwin ${TARGET_DIRECTORY}/
+  chmod -R 755 ${TARGET_DIRECTORY}/darwin/plugins
   chmod -R 755 ${TARGET_DIRECTORY}/darwin/scripts
   chmod -R 755 ${TARGET_DIRECTORY}/darwin/Resources
   chmod 755 ${TARGET_DIRECTORY}/darwin/Distribution
 }
 
 copyBuildDirectory() {
+    sed -i '' -e 's/__VERSION__/'${VERSION}'/g' ${TARGET_DIRECTORY}/darwin/scripts/preinstall
+    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' ${TARGET_DIRECTORY}/darwin/scripts/preinstall
+    chmod -R 755 ${TARGET_DIRECTORY}/darwin/scripts/preinstall
+
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' ${TARGET_DIRECTORY}/darwin/scripts/postinstall
     sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' ${TARGET_DIRECTORY}/darwin/scripts/postinstall
     chmod -R 755 ${TARGET_DIRECTORY}/darwin/scripts/postinstall
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' ${TARGET_DIRECTORY}/darwin/Distribution
     sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' ${TARGET_DIRECTORY}/darwin/Distribution
+    sed -i '' -e 's/__PACKAGE_NAME__/'${PACKAGE_NAME}'/g' ${TARGET_DIRECTORY}/darwin/Distribution
     chmod -R 755 ${TARGET_DIRECTORY}/darwin/Distribution
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' ${TARGET_DIRECTORY}/darwin/Resources/*.html
@@ -116,10 +124,10 @@ copyBuildDirectory() {
     rm -rf ${TARGET_DIRECTORY}/darwinpkg
     mkdir -p ${TARGET_DIRECTORY}/darwinpkg
 
-    #Copy cellery product to /Library/Cellery
-    mkdir -p ${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}
-    cp -a $SCRIPTPATH/application/. ${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}
-    chmod -R 755 ${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}
+    #Copy cellery product to /tmp/Library/Cellery
+    mkdir -p ${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}
+    cp -a $SCRIPTPATH/application/. ${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}
+    chmod -R 755 ${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}
 
     rm -rf ${TARGET_DIRECTORY}/package
     mkdir -p ${TARGET_DIRECTORY}/package
@@ -136,7 +144,7 @@ function buildPackage() {
     --version ${VERSION} \
     --scripts ${TARGET_DIRECTORY}/darwin/scripts \
     --root ${TARGET_DIRECTORY}/darwinpkg \
-    ${TARGET_DIRECTORY}/package/${PRODUCT}.pkg > /dev/null 2>&1
+    ${TARGET_DIRECTORY}/package/${PRODUCT}.pkg 2>&1
 }
 
 function buildProduct() {
@@ -144,7 +152,8 @@ function buildProduct() {
     productbuild --distribution ${TARGET_DIRECTORY}/darwin/Distribution \
     --resources ${TARGET_DIRECTORY}/darwin/Resources \
     --package-path ${TARGET_DIRECTORY}/package \
-    ${TARGET_DIRECTORY}/pkg/$1 > /dev/null 2>&1
+    --plugins ${TARGET_DIRECTORY}/darwin/plugins \
+    ${TARGET_DIRECTORY}/pkg/$1 2>&1
 }
 
 function signProduct() {
@@ -163,7 +172,8 @@ function signProduct() {
 function createInstaller() {
     log_info "Application installer generation process started.(3 Steps)"
     buildPackage
-    buildProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
+    # buildProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
+    buildProduct ${PACKAGE_NAME}
     while true; do
         read -p "Do you wish to sign the installer (You should have Apple Developer Certificate) [y/N]?" answer
         [[ $answer == "y" || $answer == "Y" ]] && FLAG=true && break
@@ -175,9 +185,9 @@ function createInstaller() {
 }
 
 function createUninstaller(){
-    cp $SCRIPTPATH/darwin/Resources/uninstall.sh ${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}
-    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
-    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
+    cp $SCRIPTPATH/darwin/Resources/uninstall.sh ${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}
+    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}/uninstall.sh"
+    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/tmp/Library/${PRODUCT}/${VERSION}/uninstall.sh"
 }
 
 #Pre-requisites
